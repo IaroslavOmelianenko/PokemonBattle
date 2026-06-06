@@ -16,7 +16,7 @@ public class ConsoleInputScanner implements InputScanner {
     public Optional<String> startAndReadInput() {
         if (scanner.hasNextLine()) {
             String input = scanner.nextLine().trim();
-            return Optional.ofNullable(input.isEmpty() ? null : input.toLowerCase());
+            return input.isEmpty() ? Optional.empty() : Optional.of(input.toLowerCase());
         }
         return Optional.empty();
     }

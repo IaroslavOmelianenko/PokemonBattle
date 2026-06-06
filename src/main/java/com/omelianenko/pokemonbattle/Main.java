@@ -10,10 +10,8 @@ public class Main {
     public static void main(String[] args) {
         try {
             PokemonCreator pokemonCreator = new PokemonCreator();
-            PokemonConsoleStatusView pokemonConsoleStatusView = new PokemonConsoleStatusView();
             ConsoleInputScanner consoleInputScanner = new ConsoleInputScanner();
-            BattleArena battleArena = new BattleArena(pokemonCreator, pokemonConsoleStatusView,
-                consoleInputScanner);
+            BattleArena battleArena = new BattleArena(pokemonCreator, consoleInputScanner);
             battleArena.startBattle();
         } catch (Exception e) {
             System.err.println("Ошибка: " + e.getMessage());

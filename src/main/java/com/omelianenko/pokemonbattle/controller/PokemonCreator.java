@@ -34,7 +34,7 @@ public class PokemonCreator {
 
         for (Spell spell : selectedSpells) {
             pokemonSpells.add(
-                new Spell(spell.getName(), spell.getEffect(), spell.getElement(), spell.getType(),
+                new Spell(spell.getName(), spell.getEffect(), spell.getElement(), spell.getTypes(),
                     spell.getCooldown()));
         }
 

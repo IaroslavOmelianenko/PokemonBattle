@@ -4,6 +4,7 @@ import com.omelianenko.pokemonbattle.model.Pokemon;
 import com.omelianenko.pokemonbattle.model.spells.Spell;
 import java.util.List;
 
+@Deprecated
 public class PokemonConsoleStatusView {
 
     public void showPokemonStatus(Pokemon pokemon){

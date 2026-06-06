@@ -1,8 +1,7 @@
 package com.omelianenko.pokemonbattle.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -11,111 +10,191 @@ import static org.mockito.Mockito.when;
 import com.omelianenko.pokemonbattle.model.Element;
 import com.omelianenko.pokemonbattle.model.Pokemon;
 import com.omelianenko.pokemonbattle.model.spells.Spell;
-import com.omelianenko.pokemonbattle.model.spells.SpellType;
 import com.omelianenko.pokemonbattle.util.InputScanner;
-import com.omelianenko.pokemonbattle.view.PokemonConsoleStatusView;
-import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class BattleArenaTest {
 
+    @Mock
     private PokemonCreator pokemonCreator;
-    private PokemonConsoleStatusView statusView;
+
+    @Mock
     private InputScanner inputScanner;
+
+    @InjectMocks
     private BattleArena battleArena;
+
+    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    private final PrintStream originalOut = System.out;
 
     @BeforeEach
     void setUp() {
-        pokemonCreator = mock(PokemonCreator.class);
-        statusView = mock(PokemonConsoleStatusView.class);
-        inputScanner = mock(InputScanner.class);
-
-        battleArena = new BattleArena(pokemonCreator, statusView, inputScanner);
+        System.setOut(new PrintStream(outContent));
     }
 
+    @AfterEach
+    void tearDown() {
+        System.setOut(originalOut);
+    }
+
+
     @Test
-    @DisplayName("startBattle: 2 pokemons created")
-    void startBattle_ShouldCreateTwoPokemonsAndStartFight() {
-        Pokemon pokemon1 = new Pokemon("Pikachu", 5, Element.AIR, 50, 8,
-            new ArrayList<>());
-        Pokemon pokemon2 = new Pokemon("Bulbasaur", 4, Element.EARTH, 45, 7,
-            new ArrayList<>());
+    @DisplayName("startBattle: should show 1v1 battle setup")
+    void startBattle_ShouldShowOneOnOneSetup() {
+        // Arrange
+        Pokemon p1 = mock(Pokemon.class);
+        Pokemon p2 = mock(Pokemon.class);
 
-        when(pokemonCreator.createPokemon()).thenReturn(pokemon1).thenReturn(pokemon2);
-        when(inputScanner.startAndReadInput())
-            .thenReturn(Optional.of("1")) // Attack
-            .thenReturn(Optional.of("1"))
-            .thenReturn(Optional.of("1"))
-            .thenReturn(Optional.of("1"));
+        when(p1.getName()).thenReturn("Pikachu");
+        when(p2.getName()).thenReturn("Bulbasaur");
 
+        when(pokemonCreator.createPokemon()).thenReturn(p1).thenReturn(p2);
+        when(inputScanner.startAndReadInput()).thenReturn(Optional.of("1"));
+
+        // Act
         battleArena.startBattle();
 
+        // Assert
+        assertThat(outContent.toString()).contains("PIKACHU VS BULBASAUR");
         verify(pokemonCreator, times(2)).createPokemon();
-        verify(statusView, atLeastOnce()).showPokemonStatus(any(Pokemon.class));
     }
 
-    @Test
-    @DisplayName("fight: changing pokemon roles every turn")
-    void fight_ShouldAlternateTurnsAndDeclareWinner() {
-        Pokemon pokemon1 = mock(Pokemon.class);
-        Pokemon pokemon2 = mock(Pokemon.class);
 
-        when(pokemon1.getName()).thenReturn("Pikachu");
-        when(pokemon2.getName()).thenReturn("Bulbasaur");
-        when(pokemon1.getHealth()).thenReturn(10).thenReturn(10);
-        when(pokemon2.getHealth()).thenReturn(20).thenReturn(5).thenReturn(0);
+    @Test
+    @DisplayName("startBattle: should start 2v2 battle and show team names")
+    void startBattle_ShouldStartTwoOnTwoBattleAndShowTeamNames() {
+        // Arrange
+        Pokemon t1m1 = mock(Pokemon.class);
+        Pokemon t1m2 = mock(Pokemon.class);
+        Pokemon t2m1 = mock(Pokemon.class);
+        Pokemon t2m2 = mock(Pokemon.class);
+
+        when(t1m1.getName()).thenReturn("A");
+        when(t1m2.getName()).thenReturn("B");
+        when(t2m1.getName()).thenReturn("C");
+        when(t2m2.getName()).thenReturn("D");
+
+        when(pokemonCreator.createPokemon())
+            .thenReturn(t1m1).thenReturn(t1m2)
+            .thenReturn(t2m1).thenReturn(t2m2);
+
+        when(inputScanner.startAndReadInput()).thenReturn(Optional.of("2"));
+
+        // Capture output
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+
+        try {
+            // Act
+            battleArena.startBattle();
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // Assert
+        assertThat(outContent.toString()).contains("A, B VS C, D");
+        verify(pokemonCreator, times(4)).createPokemon();
+    }
+
+
+    @Test
+    @DisplayName("fight: should handle simple attack and declare winner with real Pokemon")
+    void fight_ShouldHandleAttackAndDeclareWinner_WithRealPokemon() {
+        // Arrange
+        List<Spell> noSpells = Collections.emptyList();
+
+        // Сделаем так, что Pikachu быстрее убьёт
+        Pokemon pikachu = new Pokemon("Pikachu", 5, Element.AIR, 50, 10, noSpells);
+        Pokemon bulbasaur = new Pokemon("Bulbasaur", 4, Element.EARTH, 50, 5, noSpells);
 
         when(inputScanner.startAndReadInput())
+            .thenReturn(Optional.of("1"))
             .thenReturn(Optional.of("1"))
             .thenReturn(Optional.of("1"));
 
-        battleArena.fight(pokemon1, pokemon2);
+        // Act
+        battleArena.fight(pikachu, bulbasaur);
 
-        verify(pokemon1).attack(pokemon2);
-        verify(pokemon2).attack(pokemon1);
+        // Assert
+        assertThat(outContent.toString()).contains("Pikachu wins!");
+    }
+
+
+    @Test
+    @DisplayName("startBattle: should declare correct team winner in 2v2 battle")
+    void startBattle_ShouldDeclareCorrectTeamWinnerInTwoOnTwoBattle() {
+        // Arrange
+        Pokemon t1m1 = mock(Pokemon.class);
+        Pokemon t1m2 = mock(Pokemon.class);
+        Pokemon t2m1 = mock(Pokemon.class);
+        Pokemon t2m2 = mock(Pokemon.class);
+
+        when(t1m1.getName()).thenReturn("T1M1");
+        when(t1m2.getName()).thenReturn("T1M2");
+        when(t2m1.getName()).thenReturn("T2M1");
+        when(t2m2.getName()).thenReturn("T2M2");
+
+        lenient().when(t1m1.getHealth()).thenReturn(10);
+        lenient().when(t1m2.getHealth()).thenReturn(0);
+        lenient().when(t2m1.getHealth()).thenReturn(0);
+        lenient().when(t2m2.getHealth()).thenReturn(0);
+
+
+        when(pokemonCreator.createPokemon())
+            .thenReturn(t1m1)
+            .thenReturn(t1m2)
+            .thenReturn(t2m1)
+            .thenReturn(t2m2);
+
+        when(inputScanner.startAndReadInput())
+            .thenReturn(Optional.of("2"))
+            .thenReturn(Optional.of("1"));
+
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outContent));
+
+        try {
+            battleArena.startBattle();
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        // Assert
+        assertThat(outContent.toString()).contains("T1M1 and T1M2 win!");
+        verify(pokemonCreator, times(4)).createPokemon();
+    }
+
+    @Test
+    @DisplayName("startBattle: should close input scanner at the end")
+    void startBattle_ShouldCloseInputScanner() {
+        // Arrange
+        Pokemon p1 = mock(Pokemon.class);
+        Pokemon p2 = mock(Pokemon.class);
+
+        when(p1.getName()).thenReturn("Pikachu");
+        when(p2.getName()).thenReturn("Bulbasaur");
+
+        when(inputScanner.startAndReadInput()).thenReturn(Optional.of("1"));
+        when(pokemonCreator.createPokemon()).thenReturn(p1).thenReturn(p2);
+
+        // Act
+        battleArena.startBattle();
+
+        // Assert
         verify(inputScanner).closeInput();
-    }
-
-    @Test
-    @DisplayName("fight: changing pokemon roles every turn")
-    void fight_WhenSpellSelected_ShouldUseSpell() {
-        Pokemon pokemon1 = mock(Pokemon.class);
-        Pokemon pokemon2 = mock(Pokemon.class);
-        Spell spell = new Spell("Fireball", 10, Element.FIRE, SpellType.ATTACK, 2);
-
-        when(pokemon1.getName()).thenReturn("P1");
-        when(pokemon2.getName()).thenReturn("P2");
-        when(pokemon1.getHealth()).thenReturn(30).thenReturn(30);
-        when(pokemon2.getHealth()).thenReturn(20).thenReturn(5).thenReturn(0);
-        when(pokemon1.getSpells()).thenReturn(List.of(spell));
-        when(pokemon1.getBaseDamage()).thenReturn(5);
-
-        when(inputScanner.startAndReadInput())
-            .thenReturn(Optional.of("2")) // Cast spell
-            .thenReturn(Optional.of("1"))
-            .thenReturn(Optional.of("1")); // Then attack
-
-        battleArena.fight(pokemon1, pokemon2);
-
-        verify(pokemon1).useSpell(eq(pokemon2), eq(spell));
-    }
-
-    @Test
-    @DisplayName("fight: invalid input error")
-    void fight_WhenInvalidInput_ShouldShowErrorAndRetry() {
-        Pokemon pokemon1 = new Pokemon("Pikachu", 1, Element.AIR, 50, 8,
-            new ArrayList<>());
-        Pokemon pokemon2 = new Pokemon("Bulbasaur", 1, Element.EARTH, 45, 7,
-            new ArrayList<>());
-
-        when(inputScanner.startAndReadInput())
-            .thenReturn(Optional.of("3")) // invalid
-            .thenReturn(Optional.of("1")); // valid
-
-        battleArena.fight(pokemon1, pokemon2);
     }
 }

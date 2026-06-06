@@ -1,7 +1,7 @@
 package com.omelianenko.pokemonbattle.model.spells;
 
 import com.omelianenko.pokemonbattle.model.Element;
-import com.omelianenko.pokemonbattle.model.Pokemon;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +11,7 @@ public class Spell {
     private final String name;
     private final int effect;
     private final Element element;
-    private final SpellType type;
+    private final Set<SpellType> types;
     private final int cooldown;
     @Setter
     private int currentCooldown;
@@ -20,13 +20,13 @@ public class Spell {
         String name,
         int effect,
         Element element,
-        SpellType type,
+        Set<SpellType> types,
         int cooldown
     ) {
         this.name = name;
         this.effect = effect;
         this.element = element;
-        this.type = type;
+        this.types = types;
         this.cooldown = cooldown;
         this.currentCooldown = 0;
     }

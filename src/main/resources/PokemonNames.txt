@@ -1,19 +1,19 @@
-Pikachu
-Charmander
-Squirtle
 Bulbasaur
-Jigglypuff
-Mewtwo
-Mew
-Raichu
-Nidoqueen
-Nidoking
+Charmander
 Clefable
-Vulpix
-Ninetales Paras
-Parasect
-Venonat
-Venomoth
-Golbat
-Oddish
 Gloom
+Golbat
+Jigglypuff
+Mew
+Mewtwo
+Nidoking
+Nidoqueen
+Ninetales Paras
+Oddish
+Parasect
+Pikachu
+Raichu
+Squirtle
+Venomoth
+Venonat
+Vulpix

@@ -1,6 +1,8 @@
 package com.omelianenko.pokemonbattle.model;
 
 import com.omelianenko.pokemonbattle.model.spells.Spell;
+import com.omelianenko.pokemonbattle.model.spells.SpellType;
+import com.omelianenko.pokemonbattle.util.ElementEffectiveness;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -41,56 +43,105 @@ public class Pokemon {
     }
 
     public void useSpell(Pokemon opponent, Spell spell) {
-        if (spell.isReady()) {
-            switch (spell.getType()) {
+        if (!spell.isReady()) {
+            System.out.println("Spell is not ready. Cooldown: " + spell.getCurrentCooldown());
+            return;
+        }
+
+        int damage = 0;
+        int healAmount = 0;
+        int defenseBoost = 0;
+
+        boolean hasAttack = false;
+        boolean hasHeal = false;
+        boolean hasDefense = false;
+
+        for (SpellType type : spell.getTypes()) {
+            switch (type) {
                 case ATTACK:
-                    int damage = (int) (
-                        spell.getEffect() * getElementEffectiveness(this.element, opponent.element)
+                    damage = (int) (
+                        spell.getEffect() * ElementEffectiveness.getEffectiveness(this.element,
+                            opponent.element)
                             + this.level);
-                    opponent.setHealth(opponent.getHealth() - damage);
-                    System.out.println(
-                        this.getName() + " casts " + spell.getName() + " on " + opponent.getName()
-                            + " for " + damage + " dmg");
+                    hasAttack = true;
                     break;
-                case DEFENSE:
-                    this.setDefense(this.getDefense() + spell.getEffect());
-                    System.out.println(
-                        this.getName() + " casts " + spell.getName() + " and increases defense by "
-                            + spell.getEffect());
-                    break;
+
                 case HEAL:
-                    this.setHealth(this.getHealth() + spell.getEffect());
-                    System.out.println(
-                        this.getName() + " casts " + spell.getName() + " and heals for "
-                            + spell.getEffect());
+                    healAmount = spell.getEffect();
+                    hasHeal = true;
+                    break;
+
+                case DEFENSE:
+                    defenseBoost = spell.getEffect();
+                    hasDefense = true;
                     break;
             }
-            spell.setCurrentCooldown(spell.getCooldown());
-        } else {
-            System.out.println("Spell is not ready");
         }
+
+        if (hasAttack) {
+            opponent.setHealth(Math.max(0, opponent.getHealth() - damage));
+        }
+        if (hasHeal) {
+            this.setHealth(this.getHealth() + healAmount);
+        }
+        if (hasDefense) {
+            this.setDefense(this.getDefense() + defenseBoost);
+        }
+
+        StringBuilder log = new StringBuilder();
+        log.append(this.getName()).append(" casts ").append(spell.getName());
+
+        if (hasAttack) {
+            log.append(" on ").append(opponent.getName()).append(" for ").append(damage)
+                .append(" dmg");
+        }
+
+        if (hasHeal) {
+            if (hasAttack) {
+                log.append(" and heals for ").append(healAmount);
+            } else {
+                log.append(" and heals itself for ").append(healAmount);
+            }
+        }
+
+        if (hasDefense) {
+            if (hasAttack || hasHeal) {
+                log.append(" and increases defense by ").append(defenseBoost);
+            } else {
+                log.append(" and increases defense by ").append(defenseBoost);
+            }
+        }
+
+        log.append(".");
+        System.out.println(log);
+
+        spell.setCurrentCooldown(spell.getCooldown());
     }
 
+    @Override
+    public String toString() {
+        StringBuilder pokemonStatusBuilder = new StringBuilder();
 
-    public double getElementEffectiveness(Element attackerElement, Element defenderElement) {
-        if (attackerElement == Element.WATER && defenderElement == Element.FIRE) {
-            return 1.5;
-        } else if (attackerElement == Element.FIRE && defenderElement == Element.EARTH) {
-            return 1.5;
-        } else if (attackerElement == Element.EARTH && defenderElement == Element.AIR) {
-            return 1.5;
-        } else if (attackerElement == Element.AIR && defenderElement == Element.WATER) {
-            return 1.5;
-        } else if (attackerElement == Element.WATER && defenderElement == Element.EARTH) {
-            return 0.5;
-        } else if (attackerElement == Element.FIRE && defenderElement == Element.WATER) {
-            return 0.5;
-        } else if (attackerElement == Element.EARTH && defenderElement == Element.FIRE) {
-            return 0.5;
-        } else if (attackerElement == Element.AIR && defenderElement == Element.EARTH) {
-            return 0.5;
-        } else {
-            return 1;
+        pokemonStatusBuilder.append("-----------------------------\n");
+        pokemonStatusBuilder.append("[").append(getName().toUpperCase()).append("] lvl: ")
+            .append(getLevel()).append("\n");
+        pokemonStatusBuilder.append("Health: ").append(getHealth())
+            .append("; Dmg: ").append(getBaseDamage())
+            .append("; Def: ").append(getDefense())
+            .append("; Element: ").append(getElement()).append("\n");
+        pokemonStatusBuilder.append("Spells: \n");
+
+        for (Spell spell : getSpells()) {
+            String cooldownStatus = spell.getCurrentCooldown() == 0
+                ? "ready"
+                : spell.getCurrentCooldown() + " turn" + (spell.getCurrentCooldown() > 1 ? "s"
+                    : "");
+            pokemonStatusBuilder.append("- ").append(spell.getName())
+                .append(" - cd: ").append(cooldownStatus).append("\n");
         }
+
+        pokemonStatusBuilder.append("-----------------------------");
+
+        return pokemonStatusBuilder.toString();
     }
 }
